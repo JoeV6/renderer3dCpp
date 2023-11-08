@@ -52,11 +52,11 @@ class Renderer3d {
     Mat4x4 viewMatrix;
     Mat4x4 projectionMatrix;
 
-    float screenWidth;
-    float screenHeight;
-
 public:
     Camera camera;
+
+    float screenWidth;
+    float screenHeight;
 
     Renderer3d(float ffov, float width, float height)
         : screenWidth(width), screenHeight(height) {
@@ -65,7 +65,7 @@ public:
         mesh.LoadFromObjectFile("mountains.obj");
         meshes.push_back(mesh);
 
-        projectionMatrix = Mat4x4::Matrix_MakeProjection(ffov, width / height, 0.1f, 1000.0f);
+        projectionMatrix = Mat4x4::MakeProjection(ffov, width / height, 0.1f, 1000.0f);
     }
 
     void drawEvent() {
@@ -82,9 +82,9 @@ private:
             for (auto tri : mesh.tris) {
                 Triangle triProjected, triTransformed, triViewed;
 
-                triTransformed.p[0] = Mat4x4::Matrix_MultiplyVector(worldMatrix, tri.p[0]);
-                triTransformed.p[1] = Mat4x4::Matrix_MultiplyVector(worldMatrix, tri.p[1]);
-                triTransformed.p[2] = Mat4x4::Matrix_MultiplyVector(worldMatrix, tri.p[2]);
+                triTransformed.p[0] = Mat4x4::MultiplyVector(worldMatrix, tri.p[0]);
+                triTransformed.p[1] = Mat4x4::MultiplyVector(worldMatrix, tri.p[1]);
+                triTransformed.p[2] = Mat4x4::MultiplyVector(worldMatrix, tri.p[2]);
 
 
                 Vec3d normal, line1, line2;
@@ -92,11 +92,7 @@ private:
                 line1 = triTransformed.p[1] - triTransformed.p[0];
                 line2 = triTransformed.p[2] - triTransformed.p[0];
 
-                normal = line1.cross(line2);
-
-                if (normal.length() == 0.0f) continue;
-
-                normal = normal.normalize();
+                normal = line1.cross(line2).normalize();
 
                 Vec3d vCameraRay = triTransformed.p[0] - camera.vCameraPosition;
 
@@ -108,12 +104,13 @@ private:
                 light_direction = light_direction.normalize();
 
                 float dp = max(0.1f, light_direction.dot(normal));
-
+            
                 triTransformed.color = { dp, dp, dp };
 
-                triViewed.p[0] = Mat4x4::Matrix_MultiplyVector(viewMatrix, triTransformed.p[0]);
-                triViewed.p[1] = Mat4x4::Matrix_MultiplyVector(viewMatrix, triTransformed.p[1]);
-                triViewed.p[2] = Mat4x4::Matrix_MultiplyVector(viewMatrix, triTransformed.p[2]);
+
+                triViewed.p[0] = Mat4x4::MultiplyVector(viewMatrix, triTransformed.p[0]);
+                triViewed.p[1] = Mat4x4::MultiplyVector(viewMatrix, triTransformed.p[1]);
+                triViewed.p[2] = Mat4x4::MultiplyVector(viewMatrix, triTransformed.p[2]);
 
                 triViewed.color = triTransformed.color;
 
@@ -123,24 +120,16 @@ private:
                 
                 for (int n = 0; n < nClippedTriangles; n++) {
 
-                    triProjected.p[0] = Mat4x4::Matrix_MultiplyVector(projectionMatrix, clipped[n].p[0]);
-                    triProjected.p[1] = Mat4x4::Matrix_MultiplyVector(projectionMatrix, clipped[n].p[1]);
-                    triProjected.p[2] = Mat4x4::Matrix_MultiplyVector(projectionMatrix, clipped[n].p[2]);
-
-                    triProjected.color = clipped[n].color;
+                    triProjected.p[0] = Mat4x4::MultiplyVector(projectionMatrix, clipped[n].p[0]);
+                    triProjected.p[1] = Mat4x4::MultiplyVector(projectionMatrix, clipped[n].p[1]);
+                    triProjected.p[2] = Mat4x4::MultiplyVector(projectionMatrix, clipped[n].p[2]);
 
                     triProjected.p[0] = triProjected.p[0] / triProjected.p[0].w;
                     triProjected.p[1] = triProjected.p[1] / triProjected.p[1].w;
                     triProjected.p[2] = triProjected.p[2] / triProjected.p[2].w;
 
-                    triProjected.p[0].x *= 1.0f;
-                    triProjected.p[1].x *= 1.0f;
-                    triProjected.p[2].x *= 1.0f;
-                    triProjected.p[0].y *= 1.0f;
-                    triProjected.p[1].y *= 1.0f;
-                    triProjected.p[2].y *= 1.0f;
+                    Vec3d vOffsetView = { 0,0,0 };
 
-                    Vec3d vOffsetView = { 1,1,0 };
                     triProjected.p[0] = triProjected.p[0] + vOffsetView;
                     triProjected.p[1] = triProjected.p[1] + vOffsetView;
                     triProjected.p[2] = triProjected.p[2] + vOffsetView;
@@ -151,6 +140,8 @@ private:
                     triProjected.p[1].y *= 0.5f;
                     triProjected.p[2].x *= 0.5f;
                     triProjected.p[2].y *= 0.5f;
+
+                    triProjected.color = clipped[n].color;
 
                     vecTrianglesToRaster.push_back(triProjected);
                 }
@@ -163,76 +154,78 @@ private:
 			return z1 > z2;
 		});
 
-        for (auto& vecTrianglesToRaster : vecTrianglesToRaster) {
-            Triangle clipped[2];
-            list<Triangle> listTriangles;
-
-            listTriangles.push_back(vecTrianglesToRaster);
-            int nNewTriangles = 1;
-
-            for (int p = 0; p < 4; p++) {
-                int nTrisToAdd = 0;
-
-                while (nNewTriangles > 0) {
-
-                    Triangle test = listTriangles.front();
-					listTriangles.pop_front();
-					nNewTriangles--;
-
-                    switch (p) {
-					case 0:
-						nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]);
-						break;
-					case 1:
-						nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, (float)screenHeight - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]);
-						break;
-					case 2:
-						nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]);
-						break;
-					case 3:
-						nTrisToAdd = Triangle::clipAgainstPlane({ (float)screenWidth - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]);
-						break;
-					}
-
-                    for (int w = 0; w < nTrisToAdd; w++) {
-						listTriangles.push_back(clipped[w]);
-                    }
-                }
-            }
-        }
-
-
+        clipAndRasterizeTriangles(vecTrianglesToRaster);
 
         for (auto& triToRaster : vecTrianglesToRaster) {
 			drawTriangle(triToRaster.p[0], triToRaster.p[1], triToRaster.p[2], triToRaster.color);
 		}
     }
 
+    void clipAndRasterizeTriangles(const vector<Triangle>& vecTrianglesToRaster) {
+        for (auto& originalTriangle : vecTrianglesToRaster) {
+            Triangle clipped[2];
+            list<Triangle> listTriangles;
+
+            listTriangles.push_back(originalTriangle);
+            int nNewTriangles = 1;
+
+            for (int p = 0; p < 4; p++) {
+                int nTrisToAdd = 0;
+
+                while (nNewTriangles > 0) {
+                    Triangle test = listTriangles.front();
+                    listTriangles.pop_front();
+                    nNewTriangles--;
+
+                    switch (p) {
+                    case 0:
+                        nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]);
+                        break;
+                    case 1:
+                        nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, (float)screenHeight - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]);
+                        break;
+                    case 2:
+                        nTrisToAdd = Triangle::clipAgainstPlane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]);
+                        break;
+                    case 3:
+                        nTrisToAdd = Triangle::clipAgainstPlane({ (float)screenWidth - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]);
+                        break;
+                    }
+
+                    for (int w = 0; w < nTrisToAdd; w++) {
+                        listTriangles.push_back(clipped[w]);
+                    }
+                }
+            }
+        }
+    }
+
+
     void setupMatrices() {
         Mat4x4 translationMatrix;
-        translationMatrix = Mat4x4::Matrix_MakeIdentity();
-        translationMatrix = Mat4x4::Matrix_MakeTranslation(0.0f, 0.0f, 5.0f); //move obj
+        translationMatrix = Mat4x4::MakeIdentity();
+        translationMatrix = Mat4x4::MakeTranslation(0.0f, 0.0f, 0.0f);
 
-        worldMatrix = Mat4x4::Matrix_MakeIdentity();
-        worldMatrix = Mat4x4::Matrix_MultiplyMatrix(worldMatrix, translationMatrix);
+        worldMatrix = Mat4x4::MakeIdentity();
+        worldMatrix = Mat4x4::MultiplyMatrix(worldMatrix, translationMatrix);
 
         Mat4x4 cameraRotationMatrix, cameraRotationMatrixX, cameraRotationMatrixY;
-        cameraRotationMatrixY = Mat4x4::Matrix_MakeRotationY(camera.fYaw);
-        cameraRotationMatrixX = Mat4x4::Matrix_MakeRotationX(camera.fPitch);
+        cameraRotationMatrixY = Mat4x4::MakeRotationY(camera.fYaw);
+        cameraRotationMatrixX = Mat4x4::MakeRotationX(camera.fPitch);
 
-        cameraRotationMatrix = Mat4x4::Matrix_MultiplyMatrix(cameraRotationMatrixX, cameraRotationMatrixY);
+        cameraRotationMatrix = Mat4x4::MultiplyMatrix(cameraRotationMatrixX, cameraRotationMatrixY);
 
-        
+
         camera.vUp = { 0,1,0 };
         camera.vTarget = { 0,0,1 };
-        camera.vLookDir = Mat4x4::Matrix_MultiplyVector(cameraRotationMatrixY, camera.vTarget);
-        
+
+        camera.vLookDir = Mat4x4::MultiplyVector(cameraRotationMatrix, camera.vTarget);
         camera.vTarget = camera.vCameraPosition + camera.vLookDir;
-       
 
-        Mat4x4 cameraMatrix = Mat4x4::Matrix_PointAt(camera.vCameraPosition, camera.vTarget, camera.vUp);
 
-        viewMatrix = Mat4x4::Matrix_QuickInverse(cameraMatrix);
+        Mat4x4 cameraMatrix = Mat4x4::PointAt(camera.vCameraPosition, camera.vTarget, camera.vUp);
+
+        viewMatrix = Mat4x4::QuickInverse(cameraMatrix);
     }
 };
 
@@ -244,15 +237,17 @@ class Keyboard {
 
 public:
     static Keyboard* getInstance() {
-        if (!instance) {
-            instance = new Keyboard();
-        }
-        return instance;
+        static Keyboard instance;
+        return &instance;
     }
 
     void setMousePosition(Vec2f pos) {
 		mousePosition = pos;
 	}
+
+    Vec2f getMousePosition() {
+        return mousePosition;
+    }
 
     bool isKeyPressed(int key) {
 		return keys[key];
@@ -270,6 +265,32 @@ public:
 		buttons[button] = pressed;
 	}
 
+    static void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
+        Keyboard* keyboard = Keyboard::getInstance();
+        if (action == GLFW_PRESS) {
+            keyboard->setButtonPressed(button, true);
+        }
+        else if (action == GLFW_RELEASE) {
+            keyboard->setButtonPressed(button, false);
+        }
+    }
+
+    static void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+        Keyboard* keyboard = Keyboard::getInstance();
+
+        keyboard->setMousePosition({ (float)xpos, (float)ypos });
+    }
+
+    static void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
+        Keyboard* keyboard = Keyboard::getInstance();
+        if (action == GLFW_PRESS) {
+            keyboard->setKeyPressed(key, true);
+        }
+        else if (action == GLFW_RELEASE) {
+            keyboard->setKeyPressed(key, false);
+        }
+    }
+
 private:
     Keyboard() {
         for (int i = 0; i < GLFW_KEY_LAST; i++) {
@@ -281,87 +302,99 @@ private:
     Keyboard& operator=(const Keyboard& other) = delete;
 };
 
-Keyboard* Keyboard::instance = nullptr;
-
-
-void mouseButtonCallback(GLFWwindow* window, int button, int action, int mods) {
-    Keyboard* keyboard = Keyboard::getInstance();
-    if (action == GLFW_PRESS) {
-		keyboard->setButtonPressed(button, true);
-	}
-    else if (action == GLFW_RELEASE) {
-		keyboard->setButtonPressed(button, false);
-	}
-}
-
-void cursorPosCallback(GLFWwindow* window, double xpos, double ypos) {
+void handleKeyboardInput(Renderer3d& renderer, float fElapsedTime) {
     Keyboard* keyboard = Keyboard::getInstance();
 
-    keyboard->setMousePosition({ (float)xpos, (float)ypos });
-}
-
-void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods) {
-    Keyboard* keyboard = Keyboard::getInstance();
-    if (action == GLFW_PRESS) {
-		keyboard->setKeyPressed(key, true);
-	}
-    else if (action == GLFW_RELEASE) {
-		keyboard->setKeyPressed(key, false);
-	}
-}
-
-void handleTick(Renderer3d& renderer, float fElapsedTime) {
-    renderer.drawEvent();
-
-    Keyboard* keyboard = Keyboard::getInstance();
-    
     Vec3d vForward = renderer.camera.vLookDir * 0.2f;
-    
+
     if (keyboard->isKeyPressed(GLFW_KEY_W)) {
         renderer.camera.vCameraPosition = renderer.camera.vCameraPosition + vForward;
-	}
+    }
 
     if (keyboard->isKeyPressed(GLFW_KEY_S)) {
         renderer.camera.vCameraPosition = renderer.camera.vCameraPosition - vForward;
     }
 
     if (keyboard->isKeyPressed(GLFW_KEY_A)) {
-		renderer.camera.fYaw += 0.01f;
-	}
+        renderer.camera.vCameraPosition = renderer.camera.vCameraPosition + vForward.cross(renderer.camera.vUp).normalize() * 0.2f;
+    }
 
     if (keyboard->isKeyPressed(GLFW_KEY_D)) {
-		renderer.camera.fYaw -= 0.01f;
-	}
-    /*
-    if (keyboard->isKeyPressed(GLFW_KEY_UP)) {
-		renderer.camera.fPitch += 0.05f;
-	}
-
-    if (keyboard->isKeyPressed(GLFW_KEY_DOWN)) {
-		renderer.camera.fPitch -= 0.05f;
-	}
-    */
+        renderer.camera.vCameraPosition = renderer.camera.vCameraPosition - vForward.cross(renderer.camera.vUp).normalize() * 0.2f;
+    }
 
     if (keyboard->isKeyPressed(GLFW_KEY_UP)) {
-		renderer.camera.vCameraPosition.y += 0.1f;
-	}
+        if (renderer.camera.fPitch > -1.5f)
+            renderer.camera.fPitch -= 0.03f;
+    }
 
     if (keyboard->isKeyPressed(GLFW_KEY_DOWN)) {
-		renderer.camera.vCameraPosition.y -= 0.1f;
-	}
-    
+        if (renderer.camera.fPitch < 1.5f)
+            renderer.camera.fPitch += 0.03f;
+    }
+
+    if (keyboard->isKeyPressed(GLFW_KEY_SPACE)) {
+        renderer.camera.vCameraPosition.y += 0.2f;
+    }
+
+    if (keyboard->isKeyPressed(GLFW_KEY_LEFT_SHIFT)) {
+        renderer.camera.vCameraPosition.y -= 0.2f;
+    }
 }
+
+void handleMouseInput(Renderer3d& renderer, float fElapsedTime) {
+    Keyboard* keyboard = Keyboard::getInstance();
+
+    Vec2f mousePosition = keyboard->getMousePosition();
+    int screenWidth = renderer.screenWidth;
+    int screenHeight = renderer.screenHeight;
+
+    float sensitivity = 0.003f;
+
+    float mouseX = mousePosition.x;
+    float mouseY = mousePosition.y;
+
+
+    renderer.camera.fYaw -= sensitivity * static_cast<float>(mouseX - screenWidth / 2);
+
+    renderer.camera.fPitch += sensitivity * static_cast<float>(mouseY - screenHeight / 2);
+
+    if (renderer.camera.fPitch < -1.5f)
+        renderer.camera.fPitch = -1.5f;
+
+    if (renderer.camera.fPitch > 1.5f)
+        renderer.camera.fPitch = 1.5f;
+
+
+
+    keyboard->setMousePosition({ (float)screenWidth / 2, (float)screenHeight / 2 });
+}
+
+void handleTick(Renderer3d& renderer, float fElapsedTime) {
+    renderer.drawEvent();
+    handleKeyboardInput(renderer, fElapsedTime);
+    handleMouseInput(renderer, fElapsedTime);
+}
+
 
 int main() {
     if (!glfwInit()) {
         return -1;
     }
 
-    int width = 1000;
-    int height = 1000;
+   
+    GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
 
-    GLFWwindow* window = glfwCreateWindow(width, height, "Render3d", NULL, NULL);
 
+    int screenWidth = mode->width;
+    int screenHeight = mode->height;
+
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_DECORATED, GLFW_FALSE);
+
+    GLFWwindow* window = glfwCreateWindow(screenWidth, screenHeight, "Renderer3d", NULL, NULL);
+   
     if (!window) {
         glfwTerminate();
         return -1;
@@ -370,15 +403,16 @@ int main() {
 
     double lastTime = 0;
     int frameCount = 0;
-    glfwGetWindowSize(window, &width, &height);
+    glfwGetWindowSize(window, &screenWidth, &screenHeight);
 
-    Renderer3d renderer = Renderer3d(50.0f, (float) width, (float) height);
+    Renderer3d renderer = Renderer3d(60.0f, (float)screenWidth, (float)screenHeight);
     
     glfwMakeContextCurrent(window); 
+    glfwSetMouseButtonCallback(window, Keyboard::mouseButtonCallback);
+    glfwSetCursorPosCallback(window, Keyboard::cursorPosCallback);
+    glfwSetKeyCallback(window, Keyboard::keyCallback);
 
-    glfwSetMouseButtonCallback(window, mouseButtonCallback);
-    glfwSetCursorPosCallback(window, cursorPosCallback);
-    glfwSetKeyCallback(window, keyCallback);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 
     while (!glfwWindowShouldClose(window)) {
         double currentTime = glfwGetTime();
@@ -401,10 +435,16 @@ int main() {
         glClear(GL_COLOR_BUFFER_BIT);
 
         handleTick(renderer, (float)deltaTime);
+        
+        //draw downwards trig in middle of screen with edge at the middle with size of x 
+        float x = 0.01f;
+        drawTriangle({ -x, -x, 0.0f }, { x, -x, 0.0f }, { 0.0f, x, 0.0f }, { 1.0f, 0.0f, 0.0f });
 
         glfwSwapBuffers(window);
         glfwPollEvents();
 
+
+        glfwSetCursorPos(window, screenWidth / 2, screenHeight / 2);
     }
 
     glfwDestroyWindow(window);

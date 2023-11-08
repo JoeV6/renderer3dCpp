@@ -10,6 +10,10 @@ using namespace std;
 struct Vec2f {
 	float x = 0;
 	float y = 0;
+
+    Vec2f() = default; 
+
+    Vec2f(float x, float y) : x(x), y(y) {}
 };
 
 struct Vec3d {
@@ -20,6 +24,7 @@ struct Vec3d {
 
     Vec3d() = default;
 
+    Vec3d(float x, float y) : x(x), y(y) {}
     Vec3d(float x, float y, float z) : x(x), y(y), z(z) {}
     Vec3d(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
     
@@ -226,7 +231,7 @@ struct Mesh {
 struct Mat4x4 {
 	float m[4][4] = { 0 };
 
-    static Vec3d Matrix_MultiplyVector(Mat4x4& m, Vec3d& i)
+    static Vec3d MultiplyVector(Mat4x4& m, Vec3d& i)
     {
         Vec3d v;
         v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
@@ -236,7 +241,7 @@ struct Mat4x4 {
         return v;
     }
 
-    static Mat4x4 Matrix_MakeIdentity()
+    static Mat4x4 MakeIdentity()
     {
         Mat4x4 matrix;
         matrix.m[0][0] = 1.0f;
@@ -246,7 +251,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MakeRotationX(float fAngleRad)
+    static Mat4x4 MakeRotationX(float fAngleRad)
     {
         Mat4x4 matrix;
         matrix.m[0][0] = 1.0f;
@@ -258,7 +263,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MakeRotationY(float fAngleRad)
+    static Mat4x4 MakeRotationY(float fAngleRad)
     {
         Mat4x4 matrix;
         matrix.m[0][0] = cosf(fAngleRad);
@@ -270,7 +275,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MakeRotationZ(float fAngleRad)
+    static Mat4x4 MakeRotationZ(float fAngleRad)
     {
         Mat4x4 matrix;
         matrix.m[0][0] = cosf(fAngleRad);
@@ -282,7 +287,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MakeTranslation(float x, float y, float z)
+    static Mat4x4 MakeTranslation(float x, float y, float z)
     {
         Mat4x4 matrix;
         matrix.m[0][0] = 1.0f;
@@ -295,7 +300,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MakeProjection(float fFovDegrees, float fAspectRatio, float fNear, float fFar)
+    static Mat4x4 MakeProjection(float fFovDegrees, float fAspectRatio, float fNear, float fFar)
     {
         float fFovRad = 1.0f / tanf(fFovDegrees * 0.5f / 180.0f * 3.14159265358979323846f);
         Mat4x4 matrix;
@@ -308,7 +313,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_MultiplyMatrix(Mat4x4& m1, Mat4x4& m2)
+    static Mat4x4 MultiplyMatrix(Mat4x4& m1, Mat4x4& m2)
     {
         Mat4x4 matrix;
         for (int c = 0; c < 4; c++)
@@ -317,7 +322,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_PointAt(Vec3d& pos, Vec3d& target, Vec3d& up)
+    static Mat4x4 PointAt(Vec3d& pos, Vec3d& target, Vec3d& up)
     {
         // Calculate new forward direction
         Vec3d newForward = target - pos;
@@ -339,7 +344,7 @@ struct Mat4x4 {
         return matrix;
     }
 
-    static Mat4x4 Matrix_QuickInverse(Mat4x4& m) // Only for Rotation/Translation Matrices
+    static Mat4x4 QuickInverse(Mat4x4& m) // Only for Rotation/Translation Matrices
     {
         Mat4x4 matrix;
         matrix.m[0][0] = m.m[0][0]; matrix.m[0][1] = m.m[1][0]; matrix.m[0][2] = m.m[2][0]; matrix.m[0][3] = 0.0f;
