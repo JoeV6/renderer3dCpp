@@ -141,8 +141,15 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="math.cpp" />
+    <ClCompile Include="physics.cpp" />
+    <ClCompile Include="renderer3d.cpp" />
     <ClCompile Include="renderMain.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="camera.h" />
+    <ClInclude Include="fps.h" />
+    <ClInclude Include="keyboard.h" />
+    <ClInclude Include="math.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

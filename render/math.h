@@ -1,3 +1,5 @@
+#pragma once
+
 #include <vector>
 #include <string>
 #include <strstream>
@@ -8,18 +10,18 @@
 using namespace std;
 
 struct Vec2f {
-	float x = 0;
-	float y = 0;
+    float x = 0;
+    float y = 0;
 
-    Vec2f() = default; 
+    Vec2f() = default;
 
     Vec2f(float x, float y) : x(x), y(y) {}
 };
 
 struct Vec3d {
-	float x = 0;
-	float y = 0;
-	float z = 0;
+    float x = 0;
+    float y = 0;
+    float z = 0;
     float w = 1;
 
     Vec3d() = default;
@@ -27,12 +29,11 @@ struct Vec3d {
     Vec3d(float x, float y) : x(x), y(y) {}
     Vec3d(float x, float y, float z) : x(x), y(y), z(z) {}
     Vec3d(float x, float y, float z, float w) : x(x), y(y), z(z), w(w) {}
-    
+
     Vec3d operator+(const Vec3d& other) const {
         return Vec3d(x + other.x, y + other.y, z + other.z);
     }
 
-    
     Vec3d operator-(const Vec3d& other) const {
         return Vec3d(x - other.x, y - other.y, z - other.z);
     }
@@ -89,8 +90,15 @@ struct Vec3d {
 };
 
 struct Triangle {
-	Vec3d p[3];
+    Vec3d p[3];
     Vec3d color;
+
+    Vec3d getNormal() const {
+        Vec3d line1 = p[1] - p[0];
+        Vec3d line2 = p[2] - p[0];
+
+        return line1.cross(line2).normalize();
+    }
 
     static int clipAgainstPlane(Vec3d plane_p, Vec3d plane_n, Triangle& in_tri, Triangle& out_tri1, Triangle& out_tri2)
     {
@@ -230,16 +238,16 @@ struct Mesh {
     void increaseSize(float factor) {
         for (auto& tri : tris) {
             for (auto& p : tri.p) {
-				p.x *= factor;
-				p.y *= factor;
-				p.z *= factor;
-			}
-		}
-	}
+                p.x *= factor;
+                p.y *= factor;
+                p.z *= factor;
+            }
+        }
+    }
 };
 
 struct Mat4x4 {
-	float m[4][4] = { 0 };
+    float m[4][4] = { 0 };
 
     static Vec3d MultiplyVector(Mat4x4& m, Vec3d& i)
     {
@@ -342,6 +350,7 @@ struct Mat4x4 {
         Vec3d a = (newForward * (up.dot(newForward)));
         Vec3d newUp = up - a;
         newUp = newUp.normalize();
+
         Vec3d newRight = newUp.cross(newForward);
 
         // Construct Dimensioning and Translation Matrix	
