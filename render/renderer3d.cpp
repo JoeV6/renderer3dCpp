@@ -1,12 +1,13 @@
 #include "math.h"
 #include "keyboard.h"
 #include "camera.h"
+#include "physics3d.cpp"
 #include <list>
 
 using namespace std;
 
 class Renderer3d {
-    vector<Mesh> meshes;
+    vector<Mesh>& meshes;
 
     Mat4x4 worldMatrix;
     Mat4x4 viewMatrix;
@@ -18,13 +19,8 @@ public:
     float screenWidth;
     float screenHeight;
 
-    Renderer3d(float ffov, float width, float height)
-        : screenWidth(width), screenHeight(height) {
-
-        Mesh mesh;
-        mesh.LoadFromObjectFile("mountains.obj");
-        mesh.increaseSize(5.0f);
-        meshes.push_back(mesh);
+    Renderer3d(float ffov, float width, float height, vector<Mesh>& meshes)
+        : screenWidth(width), screenHeight(height), meshes(meshes) {
 
         projectionMatrix = Mat4x4::MakeProjection(ffov, width / height, 0.01f, 1000.0f);
     }
@@ -60,7 +56,6 @@ private:
                 float dotProduct = normal.dot(vCameraRay);
 
                 if (dotProduct >= 0.0f) continue;
-
 
                 // Get shading of triangle
                 Vec3d light_direction = { 0.0f, 1.0f, -1.0f };

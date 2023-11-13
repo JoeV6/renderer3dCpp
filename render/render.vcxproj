@@ -141,7 +141,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="physics.cpp" />
+    <ClCompile Include="physics3d.cpp" />
     <ClCompile Include="renderer3d.cpp" />
     <ClCompile Include="renderMain.cpp" />
   </ItemGroup>

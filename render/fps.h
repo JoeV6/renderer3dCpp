@@ -4,6 +4,8 @@
 #include <stdio.h>
 
 class Fps {
+	bool printFPS = true;
+
 public:
 	double currentTime;
 	double lastTime;
@@ -20,7 +22,10 @@ public:
 		currentTime = glfwGetTime();
 		nbFrames++;
 		if (currentTime - lastTime >= 1.0) {
-			printf("%f ms/frame\n", 1000.0 / double(nbFrames));
+			if (printFPS) {
+				printf("%f ms/frame |", 1000.0 / double(nbFrames));
+				printf("%f fps\n", (float)nbFrames);
+			}
 			fps = float(nbFrames);
 			nbFrames = 0;
 			lastTime += 1.0;

@@ -18,10 +18,10 @@
     <ClCompile Include="renderMain.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="physics.cpp">
+    <ClCompile Include="renderer3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="renderer3d.cpp">
+    <ClCompile Include="physics3d.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

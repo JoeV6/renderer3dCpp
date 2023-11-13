@@ -196,7 +196,16 @@ struct Triangle {
 };
 
 struct Mesh {
+
     vector<Triangle> tris;
+
+    void moveMesh(Vec3d v) {
+        for (auto& tri : tris) {
+            for (auto& p : tri.p) {
+				p = p + v;
+			}
+		}
+	}
 
     bool LoadFromObjectFile(string sFilename)
     {
@@ -244,6 +253,55 @@ struct Mesh {
             }
         }
     }
+
+    void createBoundingBoxWithPointCentral(Vec3d point, float width, float height, float depth) {
+		createBoundingBox({ point.x - width / 2, point.y - height / 2, point.z - depth / 2 }, width, height, depth);
+	}
+
+    void createBoundingBox(Vec3d point, float width, float height, float depth) {
+        createCubeoid(point, { point.x + width, point.y + height, point.z + depth });
+    }
+
+    void createCubeoid(Vec3d p1, Vec3d p2) {
+		float x1 = p1.x;
+        float y1 = p1.y;
+        float z1 = p1.z;
+
+        float x2 = p2.x;
+        float y2 = p2.y;
+        float z2 = p2.z;
+
+        Triangle front1 = { Vec3d(x1, y1, z1), Vec3d(x1, y2, z1), Vec3d(x2, y1, z1) };
+        Triangle front2 = { Vec3d(x1, y2, z1), Vec3d(x2, y2, z1), Vec3d(x2, y1, z1) };
+
+        Triangle back1 = { Vec3d(x1, y1, z2), Vec3d(x1, y2, z2), Vec3d(x2, y1, z2) };
+        Triangle back2 = { Vec3d(x1, y2, z2), Vec3d(x2, y2, z2), Vec3d(x2, y1, z2) };
+
+        Triangle left1 = { Vec3d(x1, y1, z1), Vec3d(x1, y2, z1), Vec3d(x1, y1, z2) };
+        Triangle left2 = { Vec3d(x1, y2, z1), Vec3d(x1, y2, z2), Vec3d(x1, y1, z2) };
+
+        Triangle right1 = { Vec3d(x2, y1, z1), Vec3d(x2, y2, z1), Vec3d(x2, y1, z2) };
+        Triangle right2 = { Vec3d(x2, y2, z1), Vec3d(x2, y2, z2), Vec3d(x2, y1, z2) };
+
+        Triangle top1 = { Vec3d(x1, y1, z1), Vec3d(x1, y1, z2), Vec3d(x2, y1, z1) };
+        Triangle top2 = { Vec3d(x1, y1, z2), Vec3d(x2, y1, z2), Vec3d(x2, y1, z1) };
+
+        Triangle bottom1 = { Vec3d(x1, y2, z1), Vec3d(x1, y2, z2), Vec3d(x2, y2, z1) };
+        Triangle bottom2 = { Vec3d(x1, y2, z2), Vec3d(x2, y2, z2), Vec3d(x2, y2, z1) };
+
+        tris.push_back(front1);
+        tris.push_back(front2);
+        tris.push_back(back1);
+        tris.push_back(back2);
+        tris.push_back(left1);
+        tris.push_back(left2);
+        tris.push_back(right1);
+        tris.push_back(right2);
+        tris.push_back(top1);
+        tris.push_back(top2);
+        tris.push_back(bottom1);
+        tris.push_back(bottom2);
+	}
 };
 
 struct Mat4x4 {
